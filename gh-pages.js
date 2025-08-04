@@ -1,5 +1,8 @@
 import { publish } from 'gh-pages';
 
+// Dodaj .nojekyll
+fs.writeFileSync('build/.nojekyll', '');
+
 publish('build', {
         branch: 'gh-pages',
         repo: 'https://github.com/pawo161/portfolio_new',
