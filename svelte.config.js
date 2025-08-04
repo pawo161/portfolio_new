@@ -15,9 +15,9 @@ const config = {
 			fallback: null
 		}),
 		paths: {
-			base: '/portfolio_new'
-		}
-	}
+			base: process.env.NODE_ENV === "production" ? "/portfolio_new" : "", 
+		},
+	},
 };
 
 export default config;
