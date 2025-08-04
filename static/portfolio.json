@@ -31,6 +31,25 @@
       "color": "blue"
     },
     {
+      "id": "milomi",
+      "title": "Milomi",
+      "type": "band",
+      "year": "2024",
+      "description": "Zespół grający autorską muzykę popową i alternatywną. Pierwszy singiel \"Teraz i tu\" zapowiada nadchodzące wydawnictwo \"Zmiana\". Piosenki poruszają ważne tematy, w tym motyw życia chwilą i zwolnienia tempa w codziennym pędzie.",
+      "features": [
+        "Kompozycja: Wojtek Handke, Milena Puszczak",
+        "Tekst: Milena Puszczak",
+        "Zespół i aranżacja: Paweł Knorps (gitara), Kasia Schmidt-Przeździecka (syntezator basowy), Władek Rajewski (perkusjonalia), Wojtek Handke (syntezator), Milena Puszczak (wokal)",
+        "Mix & mastering: Filip Martyniec"
+      ],
+      "links": {
+        "bandcamp": "#",
+        "spotify": "#",
+        "youtube": "https://youtu.be/iixGkbdBOaA"
+      },
+      "color": "blue"
+    },
+    {
       "id": "jazzowa-tkanka-miasta",
       "title": "Jazzowa tkanka miasta",
       "type": "Album",
