@@ -3,12 +3,14 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
+		"deploy": "node ./gh-pages.js",
 		"dev": "vite dev",
-		"build": "svelte-kit build",
-		"preview": "svelte-kit preview"
+		"build": "vite build",
+		"preview": "vite preview"
 	},
 	"devDependencies": {
 		"@rollup/plugin-json": "^5.0.0",
+		"@sveltejs/adapter-auto": "next",
 		"@sveltejs/adapter-static": "^1.0.0-next.44",
 		"@sveltejs/kit": "next",
 		"autoprefixer": "^10.4.12",
