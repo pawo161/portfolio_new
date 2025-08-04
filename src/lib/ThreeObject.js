@@ -6,13 +6,13 @@ const loader = new TextureLoader();
 
 // Load your image from the static folder
 const texture = [
-    loader.load('/wavy.portfolio/my-photo.jpg'),
-    loader.load('/wavy.portfolio/my-photo2.png'),
-    // loader.load('/wavy.portfolio/photo3.jpg'),
-    loader.load('/wavy.portfolio/photo4.jpg'),
-    loader.load('/wavy.portfolio/photo5.jpg'),
-    loader.load('/wavy.portfolio/photo6.jpg'),
-    // loader.load('/wavy.portfolio/photo8.jpg'),
+    loader.load('/my-photo.jpg'),
+    loader.load('/my-photo2.png'),
+    // loader.load('/photo3.jpg'),
+    loader.load('/photo4.jpg'),
+    loader.load('/photo5.jpg'),
+    loader.load('/photo6.jpg'),
+    // loader.load('/photo8.jpg'),
 ];
 
 let Renderer;
