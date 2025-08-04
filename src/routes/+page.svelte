@@ -13,8 +13,78 @@
 	let musicProjects = [];
 	let programmingProjects = [];
 
-	// On Page Mount
-    onMount(async () => {
+	// Scroll tracking for text animation
+	let scrollY = 0;
+	let innerHeight = 0;
+	
+	// Background brightness detection for text readability
+	let backgroundBrightness = 0.5; // Default middle brightness
+	let adaptiveTextClass = 'text-white';
+	let adaptiveSubTextClass = 'text-gray-300';
+
+	// Function to sample canvas brightness
+	function sampleCanvasBrightness() {
+		if (!ThreeObject) return;
+		
+		try {
+			const canvas = ThreeObject;
+			const ctx = canvas.getContext('2d', { willReadFrequently: true });
+			if (!ctx) return;
+			
+			// Sample multiple points across the canvas
+			const samplePoints = [
+				{ x: canvas.width * 0.2, y: canvas.height * 0.3 },
+				{ x: canvas.width * 0.5, y: canvas.height * 0.5 },
+				{ x: canvas.width * 0.8, y: canvas.height * 0.7 },
+				{ x: canvas.width * 0.3, y: canvas.height * 0.8 },
+				{ x: canvas.width * 0.7, y: canvas.height * 0.2 }
+			];
+			
+			let totalBrightness = 0;
+			let validSamples = 0;
+			
+			samplePoints.forEach(point => {
+				try {
+					const imageData = ctx.getImageData(point.x, point.y, 1, 1);
+					const [r, g, b] = imageData.data;
+					// Calculate relative luminance
+					const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+					totalBrightness += brightness;
+					validSamples++;
+				} catch (e) {
+					// Skip invalid samples
+				}
+			});
+			
+			if (validSamples > 0) {
+				backgroundBrightness = totalBrightness / validSamples;
+				
+				// Update text classes based on brightness
+				if (backgroundBrightness > 0.6) {
+					// Bright background - use dark text
+					adaptiveTextClass = 'text-gray-900';
+					adaptiveSubTextClass = 'text-gray-700';
+				} else if (backgroundBrightness > 0.4) {
+					// Medium background - use high contrast
+					adaptiveTextClass = 'text-white';
+					adaptiveSubTextClass = 'text-gray-200';
+				} else {
+					// Dark background - use light text
+					adaptiveTextClass = 'text-white';
+					adaptiveSubTextClass = 'text-gray-300';
+				}
+			}
+		} catch (error) {
+			// Fallback to default colors
+			adaptiveTextClass = 'text-white';
+			adaptiveSubTextClass = 'text-gray-300';
+		}
+	}
+
+	// Sample brightness periodically
+	let brightnessInterval;
+	
+	onMount(async () => {
         await setScene(ThreeObject)
         
         // Fetch data from the static directory using the correct path
@@ -30,11 +100,22 @@
             // Update the 3D scene with project data
             updateProjects(musicProjects, programmingProjects);
 
+			// Start brightness sampling
+			brightnessInterval = setInterval(sampleCanvasBrightness, 200);
+
         } catch (error) {
             console.error('Failed to fetch portfolio data:', error);
         }
+		
+		return () => {
+			if (brightnessInterval) {
+				clearInterval(brightnessInterval);
+			}
+		};
     });
 </script>
+
+<svelte:window bind:scrollY bind:innerHeight />
 
 <canvas bind:this={ThreeObject} style="top: 0px; right: 20px; z-index: -1; position: fixed; pointer-events: auto;"/>
 
@@ -62,118 +143,190 @@
 	</a>
 </div>
 
-<!-- Floating instruction for 3D interaction -->
-<!-- <div class="fixed top-1/2 left-8 transform -translate-y-1/2 z-10 pointer-events-none">
-	<div class="instruction-bubble">
-		<div class="text-white text-sm font-thin tracking-wider opacity-70">
-			<div class="mb-2">Click the floating</div>
-			<div class="text-[#FF0080] font-bold">pink dots</div>
-			<div class="mt-2">to explore projects</div>
-		</div>
-	</div>
-</div> -->
-
 <!-- Seamless flowing content -->
 <div class="seamless-flow">
 	<!-- Hero Section -->
 	<div class="hero-section h-[75vh] flex flex-col justify-center relative">
 		<div class="group z-10">
-			<h2 class="text-white text-6xl font-black tracking-widest ml-20">{personalData.name}</h2>
-			<h2 class="text-white text-2xl font-thin tracking-widest mt-6 ml-20">&nbsp;{personalData.title} and <mark id="revelation" style="background: none; color: #FF0080;" class="font-black">guitarist.</mark></h2>
-			<h2 class="text-white text-2xl font-thin tracking-widest mt-6 ml-20">&nbsp;{personalData.bio}</h2>
+			<h2 class="text-6xl font-black tracking-widest ml-20 adaptive-text" 
+				class:text-white={adaptiveTextClass === 'text-white'}
+				class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>{personalData.name}</h2>
+			<h2 class="text-2xl font-thin tracking-widest mt-6 ml-20 adaptive-text"
+				class:text-white={adaptiveTextClass === 'text-white'}
+				class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>&nbsp;{personalData.title} and <mark id="revelation" style="background: none; color: #FF0080;" class="font-black">guitarist.</mark></h2>
+			<h2 class="text-2xl font-thin tracking-widest mt-6 ml-20 adaptive-text"
+				class:text-white={adaptiveTextClass === 'text-white'}
+				class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>&nbsp;{personalData.bio}</h2>
 		</div>
 	</div>
 
-	<!-- Projects naturally flowing from bottom of page -->
-	<div class="projects-flow">
-		<!-- Music Projects -->
-		{#if musicProjects.length > 0}
-			<div class="project-group ml-24 mb-32">
-				<h3 class="text-white text-3xl font-black tracking-widest mb-16 opacity-80">
-					<mark style="background: none;" class="text-[#FF0080]">//</mark> MUSIC
-				</h3>
-				{#each musicProjects as data, i}
-					<div id="music-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] 2xl:w-[50rem] project-card" in:fade={{ delay: 250 * i, duration: 1000 }}>
-						{#if data.links}
-							<a
-								href={data.links.youtube || data.links.bandcamp || data.links.soundcloud || data.links.facebook}
-								rel="noopener noreferrer"
-								target="_blank"
-								class="block h-auto px-0 py-0 tracking-widest transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
-								>
-								<h2 class="text-white text-xl font-black mb-4 hover:text-[#FF0080] transition-colors duration-300">
-									<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
-								</h2>
-								<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
-								<div class="flex flex-wrap gap-3">
-									{#if data.features}
-										{#each data.features as feature}
-											<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full transform hover:skew-x-3 transition-transform duration-200">{feature}</span>
-										{/each}
-									{/if}
-								</div>
-							</a>
-						{:else}
-							<div class="h-auto px-0 py-0 tracking-widest">
-								<h2 class="text-white text-xl font-black mb-4">
-									<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
-								</h2>
-								<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
-								<div class="flex flex-wrap gap-3">
-									{#if data.features}
-										{#each data.features as feature}
-											<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full">{feature}</span>
-										{/each}
-									{/if}
-								</div>
+	<!-- Projects naturally flowing from bottom of page with biographical text -->
+	<div class="projects-flow relative">
+		<!-- Main content container -->
+		<div class="lg:flex lg:gap-8 xl:gap-16 2xl:gap-24">
+			<!-- Left side - Projects -->
+			<div class="projects-container lg:w-[45%] xl:w-[40%] 2xl:w-[35%]">
+				<!-- Music Projects -->
+				{#if musicProjects.length > 0}
+					<div class="project-group ml-24 mb-32">
+						<h3 class="text-3xl font-black tracking-widest mb-16 opacity-80 adaptive-text"
+							class:text-white={adaptiveTextClass === 'text-white'}
+							class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>
+							<mark style="background: none;" class="text-[#FF0080]">//</mark> MUSIC
+						</h3>
+						{#each musicProjects as data, i}
+							<div id="music-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card" in:fade={{ delay: 250 * i, duration: 1000 }}>
+								{#if data.links}
+									<a
+										href={data.links.youtube || data.links.bandcamp || data.links.soundcloud || data.links.facebook}
+										rel="noopener noreferrer"
+										target="_blank"
+										class="block h-auto px-0 py-0 tracking-widest transition-all duration-300 transform hover:scale-[1.02] cursor-pointer"
+										>
+										<h2 class="text-xl font-black mb-4 hover:text-[#FF0080] transition-colors duration-300 adaptive-text"
+											class:text-white={adaptiveTextClass === 'text-white'}
+											class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>
+											<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
+										</h2>
+										<h2 class="text-md font-base mb-6 leading-relaxed adaptive-subtext"
+											class:text-gray-300={adaptiveSubTextClass === 'text-gray-300'}
+											class:text-gray-200={adaptiveSubTextClass === 'text-gray-200'}
+											class:text-gray-700={adaptiveSubTextClass === 'text-gray-700'}>{data.description}</h2>
+										<div class="flex flex-wrap gap-3">
+											{#if data.features}
+												{#each data.features as feature}
+													<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full transform hover:skew-x-3 transition-transform duration-200">{feature}</span>
+												{/each}
+											{/if}
+										</div>
+									</a>
+								{:else}
+									<div class="h-auto px-0 py-0 tracking-widest">
+										<h2 class="text-white text-xl font-black mb-4">
+											<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
+										</h2>
+										<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
+										<div class="flex flex-wrap gap-3">
+											{#if data.features}
+												{#each data.features as feature}
+													<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full">{feature}</span>
+												{/each}
+											{/if}
+										</div>
+									</div>
+								{/if}
 							</div>
-						{/if}
+						{/each}
 					</div>
-				{/each}
-			</div>
-		{/if}
+				{/if}
 
-		<!-- Programming Projects -->
-		{#if programmingProjects.length > 0}
-			<div class="project-group ml-24 mb-32">
-				<h3 class="text-white text-3xl font-black tracking-widest mb-16 opacity-80">
-					<mark style="background: none;" class="text-[#FF0080]">//</mark> CODE
-				</h3>
-				{#each programmingProjects as data, i}
-					<div id="programming-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] 2xl:w-[50rem] project-card" in:fade={{ delay: 250 * (i + musicProjects.length), duration: 1000 }}>
-						{#if data.github || data.demo}
-							<a href={data.github || data.demo} rel="noopener noreferrer" target="_blank" class="block h-auto px-0 py-0 tracking-widest transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
-								<h2 class="text-white text-xl font-black mb-4 hover:text-[#FF0080] transition-colors duration-300">
-									<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
-								</h2>
-								<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
-								<div class="flex flex-wrap gap-3">
-									{#if data.technologies}
-										{#each data.technologies as topic}
-											<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full transform hover:skew-x-3 transition-transform duration-200">{topic}</span>
-										{/each}
-									{/if}
+				<!-- Programming Projects -->
+				{#if programmingProjects.length > 0}
+					<div class="project-group ml-24 mb-32">
+						<h3 class="text-white text-3xl font-black tracking-widest mb-16 opacity-80">
+							<mark style="background: none;" class="text-[#FF0080]">//</mark> CODE
+						</h3>
+						{#each programmingProjects as data, i}
+							<div id="programming-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card" in:fade={{ delay: 250 * (i + musicProjects.length), duration: 1000 }}>
+								{#if data.github || data.demo}
+									<a href={data.github || data.demo} rel="noopener noreferrer" target="_blank" class="block h-auto px-0 py-0 tracking-widest transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
+										<h2 class="text-white text-xl font-black mb-4 hover:text-[#FF0080] transition-colors duration-300">
+											<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
+										</h2>
+										<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
+										<div class="flex flex-wrap gap-3">
+											{#if data.technologies}
+												{#each data.technologies as topic}
+													<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full transform hover:skew-x-3 transition-transform duration-200">{topic}</span>
+												{/each}
+											{/if}
+										</div>
+									</a>
+								{:else}
+									<div class="h-auto px-0 py-0 tracking-widest">
+										<h2 class="text-white text-xl font-black mb-4">
+											<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
+										</h2>
+										<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
+										<div class="flex flex-wrap gap-3">
+											{#if data.technologies}
+												{#each data.technologies as topic}
+													<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full">{topic}</span>
+												{/each}
+											{/if}
+										</div>
+									</div>
+								{/if}
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
+			<!-- Right side - Biographical text (hidden on mobile/tablet) -->
+			<div class="biographical-text hidden lg:block lg:flex-1">
+				<div class="bio-flow-container" 
+					 style="opacity: {Math.max(0, Math.min(1, (scrollY - innerHeight * 0.6) / (innerHeight * 0.2)))}">
+					
+					<div class="bio-content-flow">
+						<h3 class="text-2xl font-black tracking-widest mb-8 opacity-80 adaptive-text"
+							class:text-white={adaptiveTextClass === 'text-white'}
+							class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>
+							<mark style="background: none;" class="text-[#FF0080]">//</mark> O MNIE
+						</h3>
+						
+						<div class="bio-text text-sm leading-relaxed space-y-6 adaptive-subtext"
+							 class:text-gray-300={adaptiveSubTextClass === 'text-gray-300'}
+							 class:text-gray-200={adaptiveSubTextClass === 'text-gray-200'}
+							 class:text-gray-700={adaptiveSubTextClass === 'text-gray-700'}>
+							<p>Paweł Knorps jest aktywnym muzykiem na polskiej i duńskiej scenie. Niedawno obronił dyplom magisterski z gitary jazzowej na poznańskiej Akademii, a niedługo później również dyplom magisterski z kompozycji jazzowej na prestiżowej uczelni Danish National Academy of Music w Odense.</p>
+							
+							<p>Jest głównie muzykiem improwizującym – zawodowo gitarzystą, ale również basistą, producentem muzycznym i kompozytorem. Interesuje go szczególnie tworzenie muzyki, która przekracza utrwalone granice. Kluczowa jest dla niego swobodna ekspresja i niczym nieskrępowana kreatywność.</p>
+							
+							<p>Jego nowy projekt to oryginalny jazzowy materiał grany z poznańskimi jazzmanami – Krzysztofem Dysem, Dawidem Tokłowiczem, Piotrem Cienkowskim, Kajetanem Pilarskim. Działają pod nazwą <span class="text-[#FF0080] font-semibold">Pawel Knorps Group</span>, jest to debiutancki projekt Pawła jako lidera i kompozytora muzyki jazzowej.</p>
+							
+							<p>Są jednym z sześciu finalistów Blue Note Competition 2024, gdzie zostali wybrani spośród prawie 50 zespołów jazzowych z Europy.</p>
+							
+							<p>Paweł jest głęboko zaangażowany w tworzenie miejskiej tkanki kulturalnej Poznania. Od 2019 roku jest jedną z osób zarządzających i tworzących <span class="text-[#FF0080] font-semibold">Kołorking Muzyczny</span> na Św. Marcinie 75.</p>
+							
+							<p>Zorganizował tam kilkadziesiąt wydarzeń – koncertów, warsztatów, spotkań, prób muzycznych. Jest to oddolna inicjatywa, która wspiera społeczeństwo w rozwoju muzycznym bez barier – bez kosztów finansowych i ze wsparciem mentorskim.</p>
+							
+							<p>Jego poboczną pasją jest produkcja i tworzenie muzyki elektronicznej jako <span class="text-[#FF0080] font-semibold">enthymeme</span>. Grał improwizowaną, eksperymentalną tkankę dźwiękową w takich klubach jak: Dom Technika, Farby, My, Mózg Bydgoszcz.</p>
+							
+							<p>Obecnie po powrocie do Poznania w czerwcu 2024 ze studiów w Danii dołączył do poznańskich projektów: Milomi, SNY, MUIZK NVA LAB, Domsun.</p>
+						</div>
+
+						<div class="achievements-section mt-12">
+							<h3 class="text-xl font-black tracking-widest mb-6 opacity-80 adaptive-text"
+								class:text-white={adaptiveTextClass === 'text-white'}
+								class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>
+								<mark style="background: none;" class="text-[#FF0080]">//</mark> DOKONANIA
+							</h3>
+							<div class="achievements-list text-xs leading-relaxed space-y-3 adaptive-subtext"
+								 class:text-gray-300={adaptiveSubTextClass === 'text-gray-300'}
+								 class:text-gray-200={adaptiveSubTextClass === 'text-gray-200'}
+								 class:text-gray-700={adaptiveSubTextClass === 'text-gray-700'}>
+								<div class="achievement-item">
+									<span class="text-[#FF0080] font-bold">2021</span> - wygrana O K N O | Mini-konkurs na kreatywne akcje w oknie Kołorkingu muzycznego
 								</div>
-							</a>
-						{:else}
-							<div class="h-auto px-0 py-0 tracking-widest">
-								<h2 class="text-white text-xl font-black mb-4">
-									<mark style="background: none;" class="text-[#FF0080]">.</mark>&nbsp;{data.title}
-								</h2>
-								<h2 class="text-gray-300 text-md font-base mb-6 leading-relaxed">{data.description}</h2>
-								<div class="flex flex-wrap gap-3">
-									{#if data.technologies}
-										{#each data.technologies as topic}
-											<span class="text-[0.65rem] text-[#FF0080] tracking-widest uppercase font-semibold border border-[#FF0080]/30 px-3 py-1 rounded-full">{topic}</span>
-										{/each}
-									{/if}
+								<div class="achievement-item">
+									<span class="text-[#FF0080] font-bold">2020-2021</span> nagroda od Teatru Muzycznego w Poznaniu w Konkursie „Ciąg dalszy nastąpi cz. II" za projekt „Performance audiowizualny nawiązujący do sieci neuronowej"
+								</div>
+								<div class="achievement-item">
+									<span class="text-[#FF0080] font-bold">2022</span> - stypendium programu Erasmus na studia w Syddansk musikkonservatorium w Odense, gdzie później zaczął pełnoprawne studia magisterskie
+								</div>
+								<div class="achievement-item">
+									<span class="text-[#FF0080] font-bold">2024</span> – finał Blue Note Competition 2024 z autorskim projektem kompozytorskim Pawel Knorps Group
+								</div>
+								<div class="achievement-item">
+									<span class="text-[#FF0080] font-bold">2024</span> - otrzymał Stypendium Twórcze Miasta Poznania za projekt „Jazzowa tkanka miasta – album inspirowany dźwiękami Poznania"
 								</div>
 							</div>
-						{/if}
+						</div>
 					</div>
-				{/each}
+				</div>
 			</div>
-		{/if}
+		</div>
 
 		<!-- Fade to black at the very bottom -->
 		<div class="h-40 bg-gradient-to-b from-transparent to-black/80"></div>
@@ -250,25 +403,79 @@
 		opacity: 1;
 	}
 
-	/* Instruction bubble */
-	.instruction-bubble {
-		background: rgba(0, 0, 0, 0.8);
-		backdrop-filter: blur(10px);
-		border: 1px solid rgba(255, 0, 128, 0.2);
-		border-radius: 12px;
-		padding: 1rem 1.5rem;
-		animation: pulse-glow 3s ease-in-out infinite;
+	/* Biographical text styling */
+	.biographical-text {
+		position: relative;
 	}
 
-	@keyframes pulse-glow {
-		0%, 100% {
-			box-shadow: 0 0 20px rgba(255, 0, 128, 0.3);
-			transform: scale(1);
-		}
-		50% {
-			box-shadow: 0 0 30px rgba(255, 0, 128, 0.5);
-			transform: scale(1.02);
-		}
+	.bio-flow-container {
+		position: sticky;
+		top: 2rem;
+		padding: 2rem;
+		height: calc(100vh - 4rem);
+		overflow-y: auto;
+		transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+	}
+
+	.bio-content-flow {
+		background: transparent;
+		border: none;
+		padding: 0;
+	}
+
+	.bio-text p {
+		text-align: justify;
+		font-family: system-ui, -apple-system, sans-serif;
+		font-weight: 300;
+		line-height: 1.7;
+		margin-bottom: 1.5rem;
+	}
+
+	.bio-text span {
+		font-weight: 600;
+	}
+
+	.achievements-section {
+		border-top: 1px solid rgba(255, 0, 128, 0.2);
+		padding-top: 2rem;
+	}
+
+	.achievements-list {
+		max-height: none;
+	}
+
+	.achievement-item {
+		padding: 0.75rem 0;
+		border-left: 2px solid rgba(255, 0, 128, 0.3);
+		padding-left: 1rem;
+		margin-left: 0.5rem;
+		transition: all 0.3s ease;
+		line-height: 1.5;
+	}
+
+	.achievement-item:hover {
+		border-left-color: rgba(255, 0, 128, 0.8);
+		padding-left: 1.5rem;
+		background: rgba(255, 0, 128, 0.05);
+	}
+
+	/* Custom scrollbar for bio text */
+	.bio-flow-container::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.bio-flow-container::-webkit-scrollbar-track {
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 2px;
+	}
+
+	.bio-flow-container::-webkit-scrollbar-thumb {
+		background: rgba(255, 0, 128, 0.5);
+		border-radius: 2px;
+	}
+
+	.bio-flow-container::-webkit-scrollbar-thumb:hover {
+		background: rgba(255, 0, 128, 0.8);
 	}
 
 	/* Social Media Bubbles */
@@ -407,10 +614,44 @@
 			width: 20px;
 			height: 20px;
 		}
+	}
 
-		.instruction-bubble {
-			padding: 0.75rem 1rem;
-			font-size: 0.75rem;
+	/* Large screen adjustments */
+	@media (min-width: 1024px) {
+		.projects-container {
+			padding-right: 2rem;
 		}
+	}
+	/* Adaptive text colors with smooth transitions */
+	.adaptive-text, .adaptive-subtext {
+		transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		text-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+	}
+
+	/* Enhanced text shadow for better readability */
+	.adaptive-text {
+		text-shadow: 
+			0 0 10px rgba(0, 0, 0, 0.8),
+			0 2px 4px rgba(0, 0, 0, 0.6),
+			0 1px 2px rgba(0, 0, 0, 0.9);
+	}
+
+	.adaptive-subtext {
+		text-shadow: 
+			0 0 8px rgba(0, 0, 0, 0.7),
+			0 1px 3px rgba(0, 0, 0, 0.5);
+	}
+
+	/* Dynamic brightness-based backdrop */
+	.project-card {
+		backdrop-filter: blur(2px);
+		background: rgba(0, 0, 0, 0.15);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+	}
+
+	.bio-flow-container {
+		backdrop-filter: blur(3px);
+		background: rgba(0, 0, 0, 0.1);
+		border-left: 1px solid rgba(255, 255, 255, 0.1);
 	}
 </style>
