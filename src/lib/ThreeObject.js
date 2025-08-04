@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 import { TextureLoader } from 'three';
-
+import { base } from '$app/paths';
 // Create a new TextureLoader
 const loader = new TextureLoader();
 
 // Load your image from the static folder
 const texture = [
-    loader.load('/my-photo.jpg'),
-    loader.load('/my-photo2.png'),
+    loader.load(`${base}/my-photo.jpg`),
+    loader.load(`${base}/my-photo2.png`),
     // loader.load('/photo3.jpg'),
-    loader.load('/photo4.jpg'),
-    loader.load('/photo5.jpg'),
-    loader.load('/photo6.jpg'),
-    // loader.load('/photo8.jpg'),
+    loader.load(`${base}/photo4.jpg`),
+    loader.load(`${base}/photo5.jpg`),
+    loader.load(`${base}/photo6.jpg`),
+    loader.load(`${base}/photo8.jpg`),
 ];
 
 let Renderer;

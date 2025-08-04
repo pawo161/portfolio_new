@@ -2,7 +2,7 @@ import { publish } from 'gh-pages';
 
 publish('build', {
         branch: 'gh-pages',
-        repo: 'https://github.com/pawo161/portfolio_new.git',
+        repo: 'https://github.com/pawo161/portfolio_new',
         dotfiles: true,
         user: {
             name: 'pawo161',

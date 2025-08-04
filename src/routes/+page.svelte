@@ -1,5 +1,6 @@
 <script>
 	// Library Imports
+	import { base } from '$app/paths';
 	import { setScene, updateProjects } from '$lib/ThreeObject.js';
 	import { fade } from "svelte/transition";
 	import { onMount } from 'svelte';
@@ -18,7 +19,7 @@
         
         // Fetch data from the static directory using the correct path
         try {
-            const response = await fetch('/portfolio.json');
+            const response = await fetch(`${base}/portfolio.json`);
             const portfolioData = await response.json();
             
             // Assign data to respective variables
