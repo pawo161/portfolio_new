@@ -3,11 +3,12 @@
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"deploy": "node ./gh-pages.js",
 		"dev": "vite dev",
 		"build": "vite build",
-		"preview": "vite preview"
-	},
+		"preview": "vite preview",
+		"deploy": "npm run build && gh-pages -d build"
+	}
+
 	"devDependencies": {
 		"@rollup/plugin-json": "^5.0.0",
 		"@sveltejs/adapter-auto": "next",
