@@ -15,7 +15,7 @@ const config = {
 			fallback: null
 		}),
 		paths: {
-			base: "/"
+			base: process.eventNames.NODE_EVN === 'production' ? '/portfolio_new' : ''
 		}
 	}
 };
