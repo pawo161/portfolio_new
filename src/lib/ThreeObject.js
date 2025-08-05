@@ -8,7 +8,7 @@ const loader = new TextureLoader();
 const texture = [
     loader.load(`${base}/my-photo.jpg`),
     loader.load(`${base}/my-photo2.png`),
-    // loader.load('/photo3.jpg'),
+    loader.load('/photo3.jpg'),
     loader.load(`${base}/photo4.jpg`),
     loader.load(`${base}/photo5.jpg`),
     loader.load(`${base}/photo6.jpg`),
@@ -17,14 +17,16 @@ const texture = [
 
 let Renderer;
 const SCENE = new THREE.Scene();
-
+let n = 0.2;
 // Custom ShaderMaterial for morphing with Perlin noise in vertex shader
 const morphShader = {
     uniforms: {
         tDiffuse1: { value: texture[0] },
         tDiffuse2: { value: texture[1] },
-        morphFactor: { value: 0.2 },
-        time: { value: 0.0 } // Added time uniform for noise animation
+        morphFactor: { value: n },
+        time: { value: 0} // Added time uniform for noise animation
+        // Add a new uniform for the UV offset
+        // uvOffset: { value: new THREE.Vector2(0, 0) } 
     },
     vertexShader: `
         // Classic Perlin 3D Noise by Stefan Gustavson
@@ -118,8 +120,10 @@ const morphShader = {
         varying vec2 vUv;
 
         void main() {
-            vec4 color1 = texture2D(tDiffuse1, vUv);
-            vec4 color2 = texture2D(tDiffuse2, vUv);
+            vec2 offset = vec2(0.3, 0.2); // przesunięcie w prawo o 20% tekstury
+            vec2 shiftedUv = fract(vUv + offset); 
+            vec4 color1 = texture2D(tDiffuse1, shiftedUv);
+            vec4 color2 = texture2D(tDiffuse2, shiftedUv);
             gl_FragColor = mix(color1, color2, morphFactor);
         }
     `
@@ -130,7 +134,7 @@ const SPHERE = new THREE.Mesh(
     new THREE.ShaderMaterial(morphShader)
 );
 
-SPHERE.scale.set(1.5, 1.5, 1.5);
+SPHERE.scale.set(1, 1, 1);
 SPHERE.position.set(0, 0, 0);
 SCENE.add(SPHERE);
 
@@ -144,9 +148,10 @@ directionalLight2.position.set(-1, 0, 1); // Light from a different angle
 SCENE.add(directionalLight2);
 
 SCENE.add(directionalLight);
-
-const CAMERA = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 20);
-CAMERA.position.z = 2.5;
+let z = 2;
+let m = 0.4;
+let CAMERA = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, m, z);
+CAMERA.position.z = 2.0;
 
 const projectPoints = new THREE.Group();
 SCENE.add(projectPoints);
@@ -330,9 +335,9 @@ const createDestructiblePoint = (project, position) => {
 // Variables for morphing logic
 let currentTextureIndex = 0;
 let morphing = false;
-let baseMorphSpeed = 0.0005;
+let baseMorphSpeed = 0.00095;
 let morphSpeed = baseMorphSpeed;
-const morphDelay = 30000;
+const morphDelay = 1000;
 let lastMorphTime = 0;
 let scrollPosition = 0;
 
@@ -341,6 +346,9 @@ const updateScrollPosition = () => {
     scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
     const scrollMultiplier = 1 + (scrollPosition / 1000) * 2;
     morphSpeed = baseMorphSpeed * Math.min(scrollMultiplier, 5);
+    
+   
+    // console.log(n);
 };
 
 window.addEventListener('scroll', updateScrollPosition);
@@ -351,7 +359,7 @@ const animate = async () => {
     const now = performance.now();
     
     // Update time uniform for sphere's noise animation
-    SPHERE.material.uniforms.time.value = now * 0.0002;
+    SPHERE.material.uniforms.time.value = now * 0.0001;
 
     const uniforms = SPHERE.material.uniforms;
 
@@ -363,6 +371,9 @@ const animate = async () => {
         uniforms.tDiffuse2.value = texture[currentTextureIndex];
         uniforms.morphFactor.value = 0.0;
         lastMorphTime = now;
+        z = scrollPosition/60+2;
+        m = scrollPosition/5929+0.01;
+        n = z-2;
     }
 
     if (morphing) {

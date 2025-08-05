@@ -83,11 +83,11 @@
 	}
 
 	.bio-flow-container {
-		position: sticky;
+		position: relative;
 		margin-top: 25rem;
 		top: 2rem;
 		padding: 2rem;
-		transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+		transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 		backdrop-filter: blur(3px);
 		background: rgba(0, 0, 0, 0.1);
 		border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -100,7 +100,7 @@
 	.bio-content-flow {
 		background: transparent;
 		border: none;
-		padding: 2rem;
+		padding: 1rem;
 		flex: 1;
 		display: flex;
 		flex-direction: column;
@@ -113,7 +113,7 @@
 		font-weight: 300;
 		line-height: 1.8;
 		margin-bottom: 1rem;
-		padding-right: 2rem;
+		padding-right: 3rem;
 	}
 
 	.bio-text span {

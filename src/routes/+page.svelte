@@ -34,7 +34,7 @@
 	let adaptiveSubTextClass = 'text-gray-300';
 
 	// Breakpoint for bio visibility
-	$: showBio = innerWidth >= 1280; // Show bio only on xl screens and larger
+	$: showBio = innerWidth >= 1300; // Show bio only on xl screens and larger
 	$: projectsHeight = 0;
 	
 	// Function to sample canvas brightness

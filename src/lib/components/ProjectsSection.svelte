@@ -72,7 +72,7 @@
 		<h3 class="text-3xl font-black tracking-widest mb-16 opacity-80 adaptive-text"
 			class:text-white={adaptiveTextClass === 'text-white'}
 			class:text-gray-900={adaptiveTextClass === 'text-gray-900'}>
-			<mark style="background: none;" class="text-[#FF0080]">//</mark> CODE
+			<mark style="background: none;" class="text-[#FF0080]">//</mark> OTHER
 		</h3>
 		{#each programmingProjects as data, i}
 			<div id="programming-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card" in:fade={{ delay: 250 * (i + musicProjects.length), duration: 1000 }}>
@@ -133,8 +133,8 @@
 	/* Project card highlight animation */
 	.project-card {
 		transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-		border-radius: 12px;
-		padding: 1rem;
+		border-radius: 10px;
+		padding: 0.8rem;
 		position: relative;
 		backdrop-filter: blur(2px);
 		background: rgba(0, 0, 0, 0.15);
