@@ -1,22 +1,27 @@
 <script>
 	// Library Imports
 	import { base } from '$app/paths';
-	import { setScene, updateProjects } from '$lib/ThreeObject.js';
+	import { setScene, updateProjects, setAudioSystem } from '$lib/ThreeObject.js';
 	import { fade } from "svelte/transition";
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	
-	// Import components (you'll need to create these)
+	// Import components
 	import HeroSection from '$lib/components/HeroSection.svelte';
 	import SocialBubbles from '$lib/components/SocialBubbles.svelte';
 	import ProjectsSection from '$lib/components/ProjectsSection.svelte';
 	import BiographicalSection from '$lib/components/BiographicalSection.svelte';
 	
+	// Import audio system
+	import { audioSystem } from '$lib/AudioSystem.js';
+	
+
 	// 🚀 Ta zmienna przychodzi z load()
 	export let data; // SvelteKit domyślnie przekazuje `data` z load()
 	const portfolioData = data.portfolioData;
 
 	// Create a new wavy sphere scene
 	let ThreeObject;
+	let sceneInitialized = false;
 	
 	// Project data
 	let personalData = {};
@@ -39,7 +44,7 @@
 	
 	// Function to sample canvas brightness
 	function sampleCanvasBrightness() {
-		if (!ThreeObject) return;
+		if (!ThreeObject || !sceneInitialized) return;
 		
 		try {
 			const canvas = ThreeObject;
@@ -96,36 +101,105 @@
 		}
 	}
 
+	// Initialize the 3D scene
+	const initializeScene = async () => {
+		if (!ThreeObject || sceneInitialized) return;
+		
+		try {
+			console.log('Initializing 3D scene...');
+			
+			// Ensure canvas is properly sized
+			ThreeObject.width = window.innerWidth;
+			ThreeObject.height = window.innerHeight;
+			
+			// Initialize the scene
+			await setScene(ThreeObject);
+			sceneInitialized = true;
+			
+			console.log('Scene initialized successfully');
+			
+			// Update projects if data is available
+			if (musicProjects.length > 0 || programmingProjects.length > 0) {
+				updateProjects(musicProjects, programmingProjects);
+				console.log('Projects updated');
+			}
+			
+			// Start brightness sampling
+			brightnessInterval = setInterval(sampleCanvasBrightness, 200);
+			
+		} catch (error) {
+			console.error('Failed to initialize scene:', error);
+		}
+	};
+
+	// Audio state tracking
+	let isAudioEnabled = false;
+
 	// Sample brightness periodically
 	let brightnessInterval;
 	
 	onMount(async () => {
-        await setScene(ThreeObject)
+		// Wait for DOM to be ready
+		await tick();
 		
-        // Fetch data from the static directory using the correct path
         // ✅ portfolioData już jest z `load()`, nie fetchuj go ponownie
 		if (portfolioData) {
 			personalData = portfolioData.personal;
 			musicProjects = portfolioData.musicProjects;
 			programmingProjects = portfolioData.programmingProjects;
-
-			updateProjects(musicProjects, programmingProjects);
-			brightnessInterval = setInterval(sampleCanvasBrightness, 200);
+			
+			console.log('Portfolio data loaded:', {
+				personal: !!personalData,
+				musicProjects: musicProjects.length,
+				programmingProjects: programmingProjects.length
+			});
 		} else {
 			console.error('Brak danych portfolio');
 		}
 		
+		// Wait a bit more for canvas to be available
+		setTimeout(async () => {
+			if (ThreeObject) {
+				await initializeScene();
+			} else {
+				console.error('Canvas element not available');
+			}
+		}, 100);
+		
+		// Cleanup function
 		return () => {
 			if (brightnessInterval) {
 				clearInterval(brightnessInterval);
 			}
 		};
     });
+
+	// Add a manual initialization trigger for debugging
+	const handleCanvasClick = () => {
+		if (!sceneInitialized) {
+			console.log('Manual scene initialization triggered');
+			initializeScene();
+		}
+		// Audio will be initialized automatically in ThreeObject.js onMouseDown
+		isAudioEnabled = true;
+	};
 </script>
 
 <svelte:window bind:scrollY bind:innerHeight bind:innerWidth />
 
-<canvas bind:this={ThreeObject} style="top: 0px; right: 20px; z-index: -1; position: fixed; pointer-events: auto;"></canvas>
+<!-- Simple audio enable notice - top center -->
+{#if sceneInitialized && !isAudioEnabled}
+<div class="audio-notice fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm border border-white/20 transition-all duration-300">
+	🎵 Click sphere for audio
+</div>
+{/if}
+
+<canvas 
+	bind:this={ThreeObject} 
+	on:click={handleCanvasClick}
+	class="fixed top-0 left-0 w-full h-full cursor-grab"
+	style="pointer-events: auto; z-index: 0;"
+></canvas>
 
 <SocialBubbles />
 
@@ -173,6 +247,13 @@
 	</div>
 </div>
 
+<!-- Debug info (remove in production) -->
+{#if !sceneInitialized}
+<div class="fixed bottom-4 left-4 z-50 bg-red-900/70 text-white px-3 py-2 rounded-lg text-sm backdrop-blur-sm">
+	⚠️ Scene not initialized - click canvas to retry
+</div>
+{/if}
+
 <style>
 	/* Smooth scrolling */
 	html {
@@ -183,13 +264,36 @@
 	.seamless-flow {
 		background: transparent;
 		position: relative;
+		z-index: 10; /* Higher z-index for content */
+		pointer-events: none; /* Allow clicks to pass through to canvas */
 	}
 
 	/* Projects flow seamlessly */
 	.projects-flow {
 		background: transparent;
 		position: relative;
-		z-index: 1;
+		z-index: 15;
+		pointer-events: auto; /* Re-enable pointer events for content */
+	}
+
+	/* Canvas styling */
+	canvas {
+		touch-action: none; /* Prevent scroll on mobile when dragging */
+	}
+
+	/* Canvas styling */
+	canvas {
+		touch-action: none; /* Prevent scroll on mobile when dragging */
+	}
+
+	/* Simple audio notice */
+	.audio-notice {
+		animation: gentlePulse 2s ease-in-out infinite;
+	}
+
+	@keyframes gentlePulse {
+		0%, 100% { opacity: 0.9; }
+		50% { opacity: 1; }
 	}
 
 	/* Responsive adjustments for mobile */
