@@ -8,7 +8,7 @@ const loader = new TextureLoader();
 const texture = [
     loader.load(`${base}/my-photo.jpg`),
     loader.load(`${base}/my-photo2.png`),
-    loader.load('/photo3.jpg'),
+    loader.load(`${base}/photo3.jpg`),
     loader.load(`${base}/photo4.jpg`),
     loader.load(`${base}/photo5.jpg`),
     loader.load(`${base}/photo6.jpg`),
@@ -18,6 +18,26 @@ const texture = [
 let Renderer;
 const SCENE = new THREE.Scene();
 let n = 0.2;
+
+// Audio context and sound variables
+let audioContext;
+let masterGain;
+let ambientOscillator;
+let noiseBuffer;
+let noiseSource;
+let morphGain;
+let dragGain;
+let isAudioInitialized = false;
+
+// Drag controls variables
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+let sphereRotation = { x: 0, y: 0 };
+let targetRotation = { x: 0, y: 0 };
+const rotationSpeed = 0.01;
+const dampingFactor = 0.1;
+let dragStartTime = 0;
+
 // Custom ShaderMaterial for morphing with Perlin noise in vertex shader
 const morphShader = {
     uniforms: {
@@ -134,7 +154,7 @@ const SPHERE = new THREE.Mesh(
     new THREE.ShaderMaterial(morphShader)
 );
 
-SPHERE.scale.set(1, 1, 1);
+SPHERE.scale.set(1.3, 1.3, 1.3);
 SPHERE.position.set(0, 0, 0);
 SCENE.add(SPHERE);
 
@@ -148,10 +168,10 @@ directionalLight2.position.set(-1, 0, 1); // Light from a different angle
 SCENE.add(directionalLight2);
 
 SCENE.add(directionalLight);
-let z = 2;
-let m = 0.4;
+let z = 5;
+let m = 0.2;
 let CAMERA = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, m, z);
-CAMERA.position.z = 2.0;
+CAMERA.position.z = 2.2;
 
 const projectPoints = new THREE.Group();
 SCENE.add(projectPoints);
@@ -174,6 +194,7 @@ export const updateProjects = (musicProjects, programmingProjects) => {
     // Clear existing points
     while (projectPoints.children.length > 0) {
         projectPoints.remove(projectPoints.children[0]);
+       
     }
     
     // Combine all projects and add IDs
@@ -335,11 +356,164 @@ const createDestructiblePoint = (project, position) => {
 // Variables for morphing logic
 let currentTextureIndex = 0;
 let morphing = false;
-let baseMorphSpeed = 0.00095;
+let baseMorphSpeed = 0.000091;
 let morphSpeed = baseMorphSpeed;
-const morphDelay = 1000;
+const morphDelay = 2000;
 let lastMorphTime = 0;
 let scrollPosition = 0;
+
+// Audio initialization function
+const initAudio = async () => {
+    if (isAudioInitialized) return;
+    
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Master gain for overall volume control
+        masterGain = audioContext.createGain();
+        masterGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        masterGain.connect(audioContext.destination);
+        
+        // Create ambient drone oscillator
+        ambientOscillator = audioContext.createOscillator();
+        ambientOscillator.type = 'sine';
+        ambientOscillator.frequency.setValueAtTime(60, audioContext.currentTime); // Low frequency drone
+        
+        const ambientGain = audioContext.createGain();
+        ambientGain.gain.setValueAtTime(0.1, audioContext.currentTime);
+        
+        ambientOscillator.connect(ambientGain);
+        ambientGain.connect(masterGain);
+        ambientOscillator.start();
+        
+        // Create noise buffer for texture morphing sounds
+        const bufferSize = audioContext.sampleRate * 2;
+        noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
+        }
+        
+        // Gain nodes for different sound layers
+        morphGain = audioContext.createGain();
+        morphGain.gain.setValueAtTime(0, audioContext.currentTime);
+        morphGain.connect(masterGain);
+        
+        dragGain = audioContext.createGain();
+        dragGain.gain.setValueAtTime(0, audioContext.currentTime);
+        dragGain.connect(masterGain);
+        
+        console.log('Audio initialized successfully');
+        isAudioInitialized = true;
+    } catch (error) {
+        console.warn('Audio initialization failed:', error);
+    }
+};
+
+// Function to update audio based on animation state
+const updateAudio = (rotationSpeed, morphFactor, isDragging, hoverCount) => {
+    if (!isAudioInitialized || !audioContext) return;
+    
+    const currentTime = audioContext.currentTime;
+    
+    // Update ambient drone frequency based on rotation speed
+    if (ambientOscillator) {
+        const baseFreq = 60;
+        const speedMultiplier = Math.min(rotationSpeed * 1000, 2);
+        const targetFreq = baseFreq + (speedMultiplier * 20);
+        ambientOscillator.frequency.exponentialRampToValueAtTime(targetFreq, currentTime + 0.1);
+    }
+    
+    // Morphing sound effects
+    if (morphing && morphGain) {
+        // Create filtered noise during morphing
+        if (!noiseSource) {
+            noiseSource = audioContext.createBufferSource();
+            noiseSource.buffer = noiseBuffer;
+            noiseSource.loop = true;
+            
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(200 + morphFactor * 800, currentTime);
+            filter.Q.setValueAtTime(10, currentTime);
+            
+            const morphVol = Math.sin(morphFactor * Math.PI) * 0.1;
+            morphGain.gain.setValueAtTime(morphVol, currentTime);
+            
+            noiseSource.connect(filter);
+            filter.connect(morphGain);
+            noiseSource.start();
+        }
+        
+        // Update filter frequency during morph
+        if (noiseSource) {
+            const filter = noiseSource.context.createBiquadFilter();
+            filter.frequency.exponentialRampToValueAtTime(200 + morphFactor * 800, currentTime + 0.1);
+        }
+    } else if (!morphing && noiseSource) {
+        // Fade out morph sound
+        morphGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.5);
+        setTimeout(() => {
+            if (noiseSource) {
+                noiseSource.stop();
+                noiseSource = null;
+            }
+        }, 500);
+    }
+    
+    // Drag interaction sounds
+    if (isDragging && dragGain) {
+        // Create subtle harmonics during drag
+        const dragOsc = audioContext.createOscillator();
+        dragOsc.type = 'triangle';
+        dragOsc.frequency.setValueAtTime(120, currentTime);
+        
+        dragGain.gain.setValueAtTime(0.05, currentTime);
+        dragOsc.connect(dragGain);
+        dragOsc.start();
+        dragOsc.stop(currentTime + 0.1);
+    }
+    
+    // Hover interaction sounds
+    if (hoverCount > 0 && Math.random() < 0.1) { // Occasional hover sounds
+        const hoverOsc = audioContext.createOscillator();
+        hoverOsc.type = 'sine';
+        hoverOsc.frequency.setValueAtTime(800 + Math.random() * 400, currentTime);
+        
+        const hoverGain = audioContext.createGain();
+        hoverGain.gain.setValueAtTime(0.02, currentTime);
+        hoverGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.2);
+        
+        hoverOsc.connect(hoverGain);
+        hoverGain.connect(masterGain);
+        hoverOsc.start();
+        hoverOsc.stop(currentTime + 0.2);
+    }
+};
+
+// Function to play click sound
+const playClickSound = () => {
+    if (!isAudioInitialized || !audioContext) return;
+    
+    const currentTime = audioContext.currentTime;
+    
+    // Create a click sound with multiple harmonics
+    for (let i = 0; i < 3; i++) {
+        const clickOsc = audioContext.createOscillator();
+        clickOsc.type = 'sine';
+        clickOsc.frequency.setValueAtTime(200 * (i + 1), currentTime);
+        
+        const clickGain = audioContext.createGain();
+        clickGain.gain.setValueAtTime(0.1 / (i + 1), currentTime);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.3);
+        
+        clickOsc.connect(clickGain);
+        clickGain.connect(masterGain);
+        clickOsc.start();
+        clickOsc.stop(currentTime + 0.3);
+    }
+};
 
 // Scroll tracking
 const updateScrollPosition = () => {
@@ -359,7 +533,7 @@ const animate = async () => {
     const now = performance.now();
     
     // Update time uniform for sphere's noise animation
-    SPHERE.material.uniforms.time.value = now * 0.0001;
+    SPHERE.material.uniforms.time.value = now * 0.00001;
 
     const uniforms = SPHERE.material.uniforms;
 
@@ -371,9 +545,7 @@ const animate = async () => {
         uniforms.tDiffuse2.value = texture[currentTextureIndex];
         uniforms.morphFactor.value = 0.0;
         lastMorphTime = now;
-        z = scrollPosition/60+2;
-        m = scrollPosition/5929+0.01;
-        n = z-2;
+        
     }
 
     if (morphing) {
@@ -384,14 +556,34 @@ const animate = async () => {
         }
     }
 
-    SPHERE.rotation.x += 0.0002;
-    SPHERE.rotation.y += 0.0002;
+    // Apply drag-based rotation with smooth interpolation
+    if (!isDragging) {
+        // Smooth interpolation towards target rotation
+        sphereRotation.x += (targetRotation.x - sphereRotation.x) * dampingFactor;
+        sphereRotation.y += (targetRotation.y - sphereRotation.y) * dampingFactor;
+    }
+
+    // Apply rotation to sphere and project points (combining drag rotation with auto rotation)
+    const autoRotationX = now * 0.00019;
+    const autoRotationY = now * 0.00019;
+    
+    SPHERE.rotation.x = sphereRotation.x + autoRotationX;
+    SPHERE.rotation.y = sphereRotation.y + autoRotationY;
     projectPoints.rotation.copy(SPHERE.rotation);
 
+    z = scrollPosition/60+2;
+    m = scrollPosition/5929+0.01;
+    n = z-2;
+    
+    // Count hovering points for audio feedback
+    let hoverCount = 0;
+    
     // Update particle animations and introduce slow movement
     projectPoints.children.forEach(pointGroup => {
         const userData = pointGroup.userData;
         const material = userData.particleMaterial;
+        
+        if (userData.isHovered) hoverCount++;
         
         // Slow breathing movement for each point
         const timeFactor = (now * 0.0005) + userData.movementOffset;
@@ -400,7 +592,7 @@ const animate = async () => {
         pointGroup.position.copy(newPosition);
 
         if (material && material.uniforms) {
-            material.uniforms.time.value = now * 0.001;
+            material.uniforms.time.value = now * 0.00001;
             
             // Hover animation: grow slightly on hover
             if (userData.isHovered && userData.hoverFactor < 1.0) {
@@ -419,6 +611,11 @@ const animate = async () => {
         }
     });
 
+    // Update audio based on current animation state
+    const currentRotationSpeed = Math.abs(sphereRotation.x) + Math.abs(sphereRotation.y) + 0.00019;
+    const currentMorphFactor = uniforms.morphFactor.value;
+    updateAudio(currentRotationSpeed, currentMorphFactor, isDragging, hoverCount);
+
     if (Renderer) {
         Renderer.render(SCENE, CAMERA);
     }
@@ -433,34 +630,109 @@ export const resize = async () => {
     }
 };
 
+// Mouse event handlers
+const onMouseDown = (event) => {
+    console.log('Mouse down detected'); // Debug log
+    
+    // Initialize audio on first user interaction
+    if (!isAudioInitialized) {
+        initAudio();
+    }
+    
+    isDragging = true;
+    dragStartTime = performance.now();
+    previousMousePosition = {
+        x: event.clientX,
+        y: event.clientY
+    };
+    
+    // Change cursor to grabbing
+    if (Renderer && Renderer.domElement) {
+        Renderer.domElement.style.cursor = 'grabbing';
+    }
+    
+    // Prevent default to avoid text selection
+    event.preventDefault();
+};
+
 const onMouseMove = (event) => {
+    // Update mouse position for raycasting
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    raycaster.setFromCamera(mouse, CAMERA);
-    const intersects = raycaster.intersectObjects(interactionObjects);
+    if (isDragging) {
+        console.log('Dragging...'); // Debug log
+        // Calculate mouse movement delta
+        const deltaMove = {
+            x: event.clientX - previousMousePosition.x,
+            y: event.clientY - previousMousePosition.y
+        };
 
-    if (intersects.length > 0) {
-        let intersectedSphere = intersects[0].object;
-        let pointGroup = intersectedSphere.parent;
+        // Update target rotation based on mouse movement
+        targetRotation.y += deltaMove.x * rotationSpeed;
+        targetRotation.x += deltaMove.y * rotationSpeed;
 
-        if (INTERSECTED !== pointGroup && !pointGroup.userData.isClicked) {
+        // Immediately update sphere rotation for responsive feel
+        sphereRotation.y = targetRotation.y;
+        sphereRotation.x = targetRotation.x;
+
+        previousMousePosition = {
+            x: event.clientX,
+            y: event.clientY
+        };
+        
+        // Prevent default to avoid scrolling while dragging
+        event.preventDefault();
+    } else {
+        // Handle hover effects when not dragging
+        raycaster.setFromCamera(mouse, CAMERA);
+        const intersects = raycaster.intersectObjects(interactionObjects);
+
+        if (intersects.length > 0) {
+            let intersectedSphere = intersects[0].object;
+            let pointGroup = intersectedSphere.parent;
+
+            if (INTERSECTED !== pointGroup && !pointGroup.userData.isClicked) {
+                if (INTERSECTED) {
+                    INTERSECTED.userData.isHovered = false;
+                }
+
+                INTERSECTED = pointGroup;
+                INTERSECTED.userData.isHovered = true;
+            }
+        } else {
             if (INTERSECTED) {
                 INTERSECTED.userData.isHovered = false;
+                INTERSECTED = null;
             }
-
-            INTERSECTED = pointGroup;
-            INTERSECTED.userData.isHovered = true;
         }
-    } else {
-        if (INTERSECTED) {
-            INTERSECTED.userData.isHovered = false;
-            INTERSECTED = null;
+        
+        // Set cursor style for hover feedback
+        if (Renderer && Renderer.domElement) {
+            Renderer.domElement.style.cursor = intersects.length > 0 ? 'pointer' : 'grab';
         }
     }
 };
 
-const onMouseClick = (event) => {
+const onMouseUp = (event) => {
+    console.log('Mouse up detected'); // Debug log
+    const dragDuration = performance.now() - dragStartTime;
+    const wasDragging = isDragging && dragDuration > 100; // Consider it a drag if longer than 100ms
+    
+    isDragging = false;
+    
+    // Reset cursor
+    if (Renderer && Renderer.domElement) {
+        Renderer.domElement.style.cursor = 'grab';
+    }
+    
+    // If it was a quick click (not a drag), handle project selection
+    if (!wasDragging) {
+        handleProjectClick(event);
+    }
+};
+
+const handleProjectClick = (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
@@ -471,6 +743,9 @@ const onMouseClick = (event) => {
         let clickedSphere = intersects[0].object;
         let clickedGroup = clickedSphere.parent;
         const project = clickedGroup.userData;
+        
+        // Play click sound
+        playClickSound();
         
         // Mark as clicked and start permanent destruction
         if (!clickedGroup.userData.isClicked) {
@@ -497,13 +772,97 @@ const onMouseClick = (event) => {
     }
 };
 
+const onMouseClick = (event) => {
+    // This is now handled in onMouseUp to better distinguish between clicks and drags
+};
+
+// Touch event handlers for mobile support
+const onTouchStart = (event) => {
+    event.preventDefault();
+    const touch = event.touches[0];
+    onMouseDown({
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+};
+
+const onTouchMove = (event) => {
+    event.preventDefault();
+    const touch = event.touches[0];
+    onMouseMove({
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+};
+
+const onTouchEnd = (event) => {
+    event.preventDefault();
+    onMouseUp();
+};
+
 export const setScene = async (canvas) => {
     Renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
     Renderer.setClearColor("#000000");
     
+    // Set initial cursor style
+    Renderer.domElement.style.cursor = 'grab';
+    
+    // Add click-to-enable audio message
+    const audioNotice = document.createElement('div');
+    audioNotice.id = 'audio-notice';
+    audioNotice.innerHTML = '🔊 Click to enable audio';
+    audioNotice.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20rem;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 20px;
+        font-size: 14px;
+        z-index: 1000;
+        transition: opacity 0.3s ease;
+        cursor: pointer;
+    `;
+    document.body.appendChild(audioNotice);
+    
+    // Remove notice after audio is initialized
+    const removeNotice = () => {
+        if (isAudioInitialized && audioNotice) {
+            audioNotice.style.opacity = '0';
+            setTimeout(() => {
+                if (audioNotice && audioNotice.parentNode) {
+                    audioNotice.parentNode.removeChild(audioNotice);
+                }
+            }, 300);
+        }
+    };
+    
+    // Add event listeners
     window.addEventListener('resize', resize);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('click', onMouseClick);
+    
+    // Mouse events - attach to canvas for better control
+    canvas.addEventListener('mousedown', (e) => {
+        onMouseDown(e);
+        removeNotice();
+    }, false);
+    canvas.addEventListener('mousemove', onMouseMove, false);
+    canvas.addEventListener('mouseup', onMouseUp, false);
+    canvas.addEventListener('click', onMouseClick, false);
+    
+    // Also listen to window for mouse events to handle dragging outside canvas
+    window.addEventListener('mousemove', onMouseMove, false);
+    window.addEventListener('mouseup', onMouseUp, false);
+    
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => {
+        onTouchStart(e);
+        removeNotice();
+    }, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+    
+    console.log('Scene initialized with drag controls and audio'); // Debug log
     
     await resize();
     await animate();
