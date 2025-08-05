@@ -194,7 +194,7 @@ const initAudio = async () => {
         
         // Master gain
         masterGain = audioContext.createGain();
-        masterGain.gain.setValueAtTime(0.12, audioContext.currentTime);
+        masterGain.gain.setValueAtTime(0.52, audioContext.currentTime);
         masterGain.connect(audioContext.destination);
         
         // Create reverb
@@ -286,7 +286,7 @@ const playDragSound = () => {
 };
 
 const playClickSound = () => {
-    if (!isAudioInitialized) return;
+    if (!isAudioInitialized) return
     
     const currentTime = audioContext.currentTime;
     
