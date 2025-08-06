@@ -16,7 +16,7 @@
 			<mark style="background: none;" class="text-[#FF0080]">//</mark> MUSIC
 		</h3>
 		{#each musicProjects as data, i}
-			<div id="music-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card" in:fade={{ delay: 250 * i, duration: 1000 }}>
+			<div id="music-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card pointer-events-auto" in:fade={{ delay: 250 * i, duration: 1000 }}>
 				{#if data.links}
 					<a
 						href={data.links.youtube || data.links.bandcamp || data.links.soundcloud || data.links.facebook}
@@ -75,7 +75,7 @@
 			<mark style="background: none;" class="text-[#FF0080]">//</mark> OTHER
 		</h3>
 		{#each programmingProjects as data, i}
-			<div id="programming-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card" in:fade={{ delay: 250 * (i + musicProjects.length), duration: 1000 }}>
+			<div id="programming-{i}" class="group my-20 translate-y-0 hover:-translate-y-8 duration-[400ms] ease-in-out mr-10 w-[20rem] md:w-[40rem] lg:w-[30rem] xl:w-[40rem] project-card pointer-events-auto" in:fade={{ delay: 250 * (i + musicProjects.length), duration: 1000 }}>
 				{#if data.github || data.demo}
 					<a href={data.github || data.demo} rel="noopener noreferrer" target="_blank" class="block h-auto px-0 py-0 tracking-widest transition-all duration-300 transform hover:scale-[1.02] cursor-pointer">
 						<h2 class="text-xl font-black mb-4 hover:text-[#FF0080] transition-colors duration-300 adaptive-text"

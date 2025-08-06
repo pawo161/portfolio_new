@@ -283,7 +283,7 @@ class AudioSystem {
         morph3.type = 'sawtooth';
         
         const baseFreq = 250;
-        morph1.frequency.setValueAtTime(baseFreq, currentTime);
+        morph1.frequency.setValueAtTime(baseFreq/morphFactor, currentTime);
         morph2.frequency.setValueAtTime(baseFreq * 1.43 * morphFactor, currentTime); // Minor third
         morph3.frequency.setValueAtTime(baseFreq * 1.52 * morphFactor, currentTime); // Perfect fifth
         

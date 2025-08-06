@@ -195,7 +195,7 @@
 <!-- Simple audio enable notice - top center -->
 {#if sceneInitialized && !isAudioEnabled}
 <div class="audio-notice fixed top-6 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm border border-white/20 transition-all duration-300">
-	🎵 Click sphere for audio
+	 touch the sphere for audio
 </div>
 {/if}
 
@@ -219,7 +219,7 @@
 	<!-- Projects naturally flowing from bottom of page with biographical text -->
 	<div class="projects-flow relative">
 		<!-- Main content container -->
-		<div class="flex gap-8 xl:gap-16 2xl:gap-24">
+		<div class="flex gap-8 xl:gap-16 xl:gap-24">
 			<!-- Left side - Projects -->
 			<div 
 				class={`projects-container flex-1 ${showBio ? 'xl:w-1/2' : ''}`}
@@ -279,7 +279,7 @@
 		background: transparent;
 		position: relative;
 		z-index: 15;
-		pointer-events: auto; /* Re-enable pointer events for content */
+		pointer-events: none; /* Re-enable pointer events for content */
 	}
 
 	/* Canvas styling */
