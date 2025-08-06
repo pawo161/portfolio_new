@@ -194,7 +194,7 @@ const initAudio = async () => {
         
         // Master gain
         masterGain = audioContext.createGain();
-        masterGain.gain.setValueAtTime(0.52, audioContext.currentTime);
+        masterGain.gain.setValueAtTime(0.92, audioContext.currentTime);
         masterGain.connect(audioContext.destination);
         
         // Create reverb
@@ -557,7 +557,7 @@ const animate = async () => {
         uniforms.tDiffuse1.value = texture[currentTextureIndex];
         currentTextureIndex = (currentTextureIndex + 1) % texture.length;
         uniforms.tDiffuse2.value = texture[currentTextureIndex];
-        uniforms.morphFactor.value = 0.0;
+        uniforms.morphFactor.value = 0.6;
         lastMorphTime = now;
         
         // Play morph sound once per morph cycle
@@ -682,7 +682,7 @@ const onMouseMove = (event) => {
             console.log('Dragging with delta:', deltaMove.x, deltaMove.y);
             
             // Play drag sound occasionally
-            if (Math.random() < 0.08) {
+            if (Math.random() < 0.58) {
                 audioSystem.playDragSound();
             }
             
@@ -764,11 +764,11 @@ const handleProjectClick = (event) => {
         let clickedSphere = intersects[0].object;
         let clickedGroup = clickedSphere.parent;
         const project = clickedGroup.userData;
-        
-        console.log('Project clicked:', project.id);
-        
         // Play click sound
         audioSystem.playClickSound();
+        console.log('Project clicked:', project.id);
+        
+        
         
         // Mark as clicked and start permanent destruction
         if (!clickedGroup.userData.isClicked) {

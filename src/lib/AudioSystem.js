@@ -144,8 +144,8 @@ class AudioSystem {
         filter2.Q.setValueAtTime(1.5, currentTime);
         
         const dragGain = this.audioContext.createGain();
-        dragGain.gain.setValueAtTime(0.018, currentTime);
-        dragGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.5);
+        dragGain.gain.setValueAtTime(0.18, currentTime);
+        dragGain.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.5);
         
         // Complex signal routing
         grain1.connect(filter1);
@@ -212,7 +212,7 @@ class AudioSystem {
         filter2.Q.setValueAtTime(2, currentTime);
         
         const clickGain = this.audioContext.createGain();
-        clickGain.gain.setValueAtTime(0.035, currentTime);
+        clickGain.gain.setValueAtTime(0.135, currentTime);
         clickGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 2.5);
         
         // Routing through effects
@@ -282,7 +282,7 @@ class AudioSystem {
         morph2.type = 'triangle';
         morph3.type = 'sawtooth';
         
-        const baseFreq = 150;
+        const baseFreq = 230;
         morph1.frequency.setValueAtTime(baseFreq, currentTime);
         morph2.frequency.setValueAtTime(baseFreq * 1.26, currentTime); // Minor third
         morph3.frequency.setValueAtTime(baseFreq * 1.5, currentTime); // Perfect fifth
@@ -296,7 +296,7 @@ class AudioSystem {
         const morphGain = this.audioContext.createGain();
         const envelope = Math.sin(morphFactor * Math.PI) * 0.02;
         morphGain.gain.setValueAtTime(envelope, currentTime);
-        morphGain.gain.linearRampToValueAtTime(0.001, currentTime + 1.5);
+        morphGain.gain.linearRampToValueAtTime(0.23, currentTime + 1.5);
         
         morph1.connect(filter);
         morph2.connect(filter);
