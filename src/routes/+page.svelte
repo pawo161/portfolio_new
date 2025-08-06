@@ -71,6 +71,7 @@
 					const brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 					totalBrightness += brightness;
 					validSamples++;
+						
 				} catch (e) {
 					// Skip invalid samples
 				}
@@ -84,6 +85,7 @@
 					// Bright background - use dark text
 					adaptiveTextClass = 'text-gray-900';
 					adaptiveSubTextClass = 'text-gray-700';
+					
 				} else if (backgroundBrightness > 0.4) {
 					// Medium background - use high contrast
 					adaptiveTextClass = 'text-white';
@@ -92,6 +94,7 @@
 					// Dark background - use light text
 					adaptiveTextClass = 'text-white';
 					adaptiveSubTextClass = 'text-gray-300';
+					
 				}
 			}
 		} catch (error) {
@@ -127,6 +130,7 @@
 			// Start brightness sampling
 			brightnessInterval = setInterval(sampleCanvasBrightness, 200);
 			
+
 		} catch (error) {
 			console.error('Failed to initialize scene:', error);
 		}
@@ -183,6 +187,7 @@
 		// Audio will be initialized automatically in ThreeObject.js onMouseDown
 		isAudioEnabled = true;
 	};
+
 </script>
 
 <svelte:window bind:scrollY bind:innerHeight bind:innerWidth />
@@ -247,12 +252,13 @@
 	</div>
 </div>
 
+
 <!-- Debug info (remove in production) -->
-{#if !sceneInitialized}
+<!-- {#if !sceneInitialized}
 <div class="fixed bottom-4 left-4 z-50 bg-red-900/70 text-white px-3 py-2 rounded-lg text-sm backdrop-blur-sm">
 	⚠️ Scene not initialized - click canvas to retry
 </div>
-{/if}
+{/if} -->
 
 <style>
 	/* Smooth scrolling */

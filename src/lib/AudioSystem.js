@@ -282,10 +282,10 @@ class AudioSystem {
         morph2.type = 'triangle';
         morph3.type = 'sawtooth';
         
-        const baseFreq = 230;
+        const baseFreq = 250;
         morph1.frequency.setValueAtTime(baseFreq, currentTime);
-        morph2.frequency.setValueAtTime(baseFreq * 1.26, currentTime); // Minor third
-        morph3.frequency.setValueAtTime(baseFreq * 1.5, currentTime); // Perfect fifth
+        morph2.frequency.setValueAtTime(baseFreq * 1.43 * morphFactor, currentTime); // Minor third
+        morph3.frequency.setValueAtTime(baseFreq * 1.52 * morphFactor, currentTime); // Perfect fifth
         
         // Spectral filter that changes with morph
         const filter = this.audioContext.createBiquadFilter();
@@ -294,9 +294,9 @@ class AudioSystem {
         filter.Q.setValueAtTime(4 + morphFactor * 8, currentTime);
         
         const morphGain = this.audioContext.createGain();
-        const envelope = Math.sin(morphFactor * Math.PI) * 0.02;
+        const envelope = Math.sin(morphFactor * Math.PI) * 0.42;
         morphGain.gain.setValueAtTime(envelope, currentTime);
-        morphGain.gain.linearRampToValueAtTime(0.23, currentTime + 1.5);
+        morphGain.gain.linearRampToValueAtTime(1.83, currentTime + 1.5);
         
         morph1.connect(filter);
         morph2.connect(filter);
@@ -308,9 +308,9 @@ class AudioSystem {
         morph1.start();
         morph2.start();
         morph3.start();
-        morph1.stop(currentTime + 1.5);
-        morph2.stop(currentTime + 1.5);
-        morph3.stop(currentTime + 1.5);
+        morph1.stop(currentTime + 0.5);
+        morph2.stop(currentTime + 0.5);
+        morph3.stop(currentTime + 0.5);
     }
 }
 

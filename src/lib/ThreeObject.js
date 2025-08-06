@@ -496,7 +496,7 @@ const createDestructiblePoint = (project, position) => {
     
     // Add interaction sphere for raycasting
     const interactionSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.05, 8, 8),
+        new THREE.SphereGeometry(0.09, 8, 8), // był 0.05
         new THREE.MeshBasicMaterial({ visible: false })
     );
     pointGroup.add(interactionSphere);
@@ -528,7 +528,7 @@ let morphing = false;
 let baseMorphSpeed = 0.000091;
 let morphSpeed = baseMorphSpeed;
 const morphDelay = 2000;
-let lastMorphTime = 0;
+let lastMorphTime = 20;
 let scrollPosition = 0;
 let lastMorphSoundTime = 0;
 
@@ -557,11 +557,11 @@ const animate = async () => {
         uniforms.tDiffuse1.value = texture[currentTextureIndex];
         currentTextureIndex = (currentTextureIndex + 1) % texture.length;
         uniforms.tDiffuse2.value = texture[currentTextureIndex];
-        uniforms.morphFactor.value = 0.6;
-        lastMorphTime = now;
-        
+        uniforms.morphFactor.value = 0.5;
+        lastMorphTime = 20;
+        console.log(now - lastMorphSoundTime > morphDelay)
         // Play morph sound once per morph cycle
-        if (now - lastMorphSoundTime > morphDelay) {
+       if (now - lastMorphSoundTime > morphDelay) {
             audioSystem.playMorphSound(uniforms.morphFactor.value);
             lastMorphSoundTime = now;
         }
@@ -593,7 +593,7 @@ const animate = async () => {
     z = scrollPosition/60+2;
     m = scrollPosition/5929+0.01;
     n = z-2;
-    
+     
     // Update particle animations
     projectPoints.children.forEach(pointGroup => {
         const userData = pointGroup.userData;
@@ -636,6 +636,7 @@ export const resize = async () => {
         Renderer.setSize(window.innerWidth, window.innerHeight);
         CAMERA.aspect = window.innerWidth / window.innerHeight;
         CAMERA.updateProjectionMatrix();
+        
     }
 };
 
@@ -703,7 +704,7 @@ const onMouseMove = (event) => {
     } else {
         // Handle hover effects
         raycaster.setFromCamera(mouse, CAMERA);
-        const intersects = raycaster.intersectObjects(interactionObjects);
+        const intersects = raycaster.intersectObjects(interactionObjects, true);
 
         if (intersects.length > 0) {
             let intersectedSphere = intersects[0].object;
@@ -718,7 +719,7 @@ const onMouseMove = (event) => {
                 INTERSECTED.userData.isHovered = true;
                 
                 // Play hover sound occasionally
-                if (Math.random() < 0.03) {
+                if (Math.random() < 0.3) {
                     audioSystem.playHoverSound();
                 }
             }
