@@ -7,6 +7,11 @@ class AudioSystem {
         this.reverb = null;
         this.delay = null;
         this.isInitialized = false;
+        this.volume = 0.4;           // Główna głośność (było 0.12)
+        this.reverbWet = 0.9;        // Pogłos bardziej intensywny
+        this.delayWet = 0.4;         // Opóźnienie bardziej słyszalne
+        this.delayFeedbackGain = 0.38; // Silniejszy feedback echa
+
     }
 
     async init() {
@@ -23,7 +28,7 @@ class AudioSystem {
             
             // Master gain
             this.masterGain = this.audioContext.createGain();
-            this.masterGain.gain.setValueAtTime(0.12, this.audioContext.currentTime);
+            this.masterGain.gain.setValueAtTime(this.volume, this.audioContext.currentTime);
             this.masterGain.connect(this.audioContext.destination);
             
             // Create experimental reverb
@@ -58,9 +63,10 @@ class AudioSystem {
         for (let channel = 0; channel < 2; channel++) {
             const channelData = impulseBuffer.getChannelData(channel);
             for (let i = 0; i < reverbLength; i++) {
-                const decay = Math.pow(1 - i / reverbLength, 1.1);
-                const earlyReflection = i < reverbLength * 0.05 ? Math.random() * 0.6 : 0;
-                channelData[i] = ((Math.random() * 2 - 1) * decay * 0.3) + earlyReflection;
+                const decay = Math.pow(1 - i / reverbLength, 0.95); // wolniejsze wygaszanie
+                const earlyReflection = i < reverbLength * 0.08 ? Math.random() * 0.9 : 0;
+                channelData[i] = ((Math.random() * 2 - 1) * decay * 0.6) + earlyReflection;
+
             }
         }
         this.reverb.buffer = impulseBuffer;
@@ -68,27 +74,26 @@ class AudioSystem {
     }
 
     async createDelay() {
-        // Multi-tap delay system
         this.delay = this.audioContext.createDelay(1.5);
         this.delay.delayTime.setValueAtTime(0.33, this.audioContext.currentTime);
-        
+
         const delay2 = this.audioContext.createDelay(1.5);
         delay2.delayTime.setValueAtTime(0.52, this.audioContext.currentTime);
-        
+
         const delayFeedback = this.audioContext.createGain();
-        delayFeedback.gain.setValueAtTime(0.28, this.audioContext.currentTime);
-        
+        delayFeedback.gain.setValueAtTime(this.delayFeedbackGain, this.audioContext.currentTime); // zwiększony
+
         const delayWet = this.audioContext.createGain();
-        delayWet.gain.setValueAtTime(0.22, this.audioContext.currentTime);
-        
-        // Complex delay routing
+        delayWet.gain.setValueAtTime(this.delayWet, this.audioContext.currentTime); // zwiększony
+
         this.delay.connect(delayFeedback);
         delayFeedback.connect(delay2);
         delay2.connect(this.delay);
         this.delay.connect(delayWet);
         delay2.connect(delayWet);
-        delayWet.connect(this.reverb);
+        delayWet.connect(this.reverb); // większy wpływ delayu na pogłos
     }
+
 
     playWelcomeSound() {
         if (!this.isInitialized) return;
@@ -99,7 +104,7 @@ class AudioSystem {
         welcome.frequency.setValueAtTime(880, currentTime); // A5
         
         const welcomeGain = this.audioContext.createGain();
-        welcomeGain.gain.setValueAtTime(0.025, currentTime);
+        welcomeGain.gain.setValueAtTime(0.5, currentTime);
         welcomeGain.gain.exponentialRampToValueAtTime(0.001, currentTime + 1.0);
         
         welcome.connect(welcomeGain);
@@ -144,7 +149,7 @@ class AudioSystem {
         filter2.Q.setValueAtTime(1.5, currentTime);
         
         const dragGain = this.audioContext.createGain();
-        dragGain.gain.setValueAtTime(0.18, currentTime);
+        dragGain.gain.setValueAtTime(0.25, currentTime);
         dragGain.gain.exponentialRampToValueAtTime(0.01, currentTime + 0.5);
         
         // Complex signal routing

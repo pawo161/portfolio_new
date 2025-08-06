@@ -215,42 +215,39 @@
 		{adaptiveTextClass} 
 		{adaptiveSubTextClass} 
 	/>
-
-	<!-- Projects naturally flowing from bottom of page with biographical text -->
-	<div class="projects-flow relative">
-		<!-- Main content container -->
-		<div class="flex gap-8 xl:gap-16 xl:gap-24">
-			<!-- Left side - Projects -->
-			<div 
-				class={`projects-container flex-1 ${showBio ? 'xl:w-1/2' : ''}`}
-				bind:clientHeight={projectsHeight}
-				>
-				<ProjectsSection 
-					{musicProjects}
-					{programmingProjects}
-					{adaptiveTextClass}
-					{adaptiveSubTextClass}
-				/>
-			</div>
-
-			<!-- Right side - Biographical text (responsive visibility) -->
-			{#if showBio}
-				<div class="biographical-text xl:w-1/2 2xl:w-2/3">
-					<BiographicalSection 
-						{scrollY}
-						{innerHeight}
-						{projectsHeight}
-						{adaptiveTextClass}
-						{adaptiveSubTextClass}
-					/>
-				</div>
-			{/if}
+<!-- Projects naturally flowing from bottom of page with biographical text -->
+	<div class="projects-flow relative px-4 sm:px-6 md:px-8 xl:px-16 2xl:px-24">
+	<!-- Centered column on mobile, row on xl+ -->
+	<div class="flex flex-col items-center xl:items-start xl:flex-row gap-16 2xl:gap-24">
+		
+		<!-- Left side - Projects -->
+		<div
+		class="projects-container w-full max-w-3xl xl:max-w-none xl:w-1/2"
+		bind:clientHeight={projectsHeight}
+		>
+		<ProjectsSection 
+			{musicProjects}
+			{programmingProjects}
+			{adaptiveTextClass}
+			{adaptiveSubTextClass}
+		/>
 		</div>
 
-		<!-- Fade to black at the very bottom -->
-		<div class="h-40 bg-gradient-to-b from-transparent to-black/80"></div>
+		<!-- Right side - Biographical text -->
+		{#if showBio}
+		<div class="w-full max-w-3xl xl:max-w-none xl:w-1/2 2xl:w-2/3 mt-12 xl:mt-0">
+			<BiographicalSection 
+			{scrollY}
+			{innerHeight}
+			{projectsHeight}
+			{adaptiveTextClass}
+			{adaptiveSubTextClass}
+			/>
+		</div>
+		{/if}
 	</div>
-</div>
+	</div>
+	</div>
 
 
 <!-- Debug info (remove in production) -->
